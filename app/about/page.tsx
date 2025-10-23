@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { COMPANY_INFO } from '@/lib/constants'
+import { COMPANY_INFO, getAssetPath } from '@/lib/constants'
 
 export default function AboutPage() {
   return (
@@ -59,7 +59,7 @@ export default function AboutPage() {
             </div>
             <div className="relative rounded-lg aspect-[4/3] overflow-hidden shadow-lg">
               <Image
-                src="/images/team-photo.PNG"
+                src={getAssetPath('images/team-photo.PNG')}
                 alt="Derek Leider Masonry team"
                 fill
                 className="object-cover"

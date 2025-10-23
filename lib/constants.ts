@@ -17,6 +17,16 @@ export const COMPANY_INFO = {
   serviceArea: 'Greater Boston',
 }
 
+// Base path for GitHub Pages deployment
+export const BASE_PATH = '/derekleidermasonrydemo'
+
+// Utility function to get the correct asset path
+export function getAssetPath(path: string): string {
+  // Remove leading slash if present
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path
+  return `${BASE_PATH}/${cleanPath}`
+}
+
 export const SERVICES = [
   {
     slug: 'brickwork',

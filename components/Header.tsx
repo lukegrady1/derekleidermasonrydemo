@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { COMPANY_INFO, NAV_LINKS } from '@/lib/constants'
+import { COMPANY_INFO, NAV_LINKS, getAssetPath } from '@/lib/constants'
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -28,7 +28,7 @@ export default function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/logo.png"
+              src={getAssetPath('logo.png')}
               alt="Derek Leider Masonry"
               width={180}
               height={60}

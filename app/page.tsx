@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { COMPANY_INFO, SERVICES } from '@/lib/constants'
+import { COMPANY_INFO, SERVICES, getAssetPath } from '@/lib/constants'
 
 export default function Home() {
   return (
@@ -13,7 +13,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(/images/hero-masonry.PNG)',
+            backgroundImage: `url(${getAssetPath('images/hero-masonry.PNG')})`,
           }}
         />
 
