@@ -34,21 +34,8 @@ export default function ServiceAreaPage() {
       <section className="py-16 lg:py-24">
         <div className="container-custom">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            {/* Interactive Map */}
-            <div className="sticky top-24">
-              <ServiceAreaMap />
-              <div className="mt-6 bg-brand-50 border-2 border-brand-200 rounded-lg p-6">
-                <h3 className="font-bold text-stone-900 mb-2">
-                  Based in Wilmington, MA
-                </h3>
-                <address className="not-italic text-stone-700 text-sm">
-                  {COMPANY_INFO.address.full}
-                </address>
-              </div>
-            </div>
-
-            {/* Towns List */}
-            <div>
+            {/* Towns List - Shows first on mobile */}
+            <div className="order-2 lg:order-1">
               <h2 className="text-3xl font-bold text-stone-900 mb-6">
                 Cities & Towns We Serve
               </h2>
@@ -95,6 +82,19 @@ export default function ServiceAreaPage() {
                 >
                   Call {COMPANY_INFO.phoneDisplay}
                 </a>
+              </div>
+            </div>
+
+            {/* Interactive Map - Shows second on mobile, sticky on desktop */}
+            <div className="order-1 lg:order-2 lg:sticky lg:top-24">
+              <ServiceAreaMap />
+              <div className="mt-6 bg-brand-50 border-2 border-brand-200 rounded-lg p-6">
+                <h3 className="font-bold text-stone-900 mb-2">
+                  Based in Wilmington, MA
+                </h3>
+                <address className="not-italic text-stone-700 text-sm">
+                  {COMPANY_INFO.address.full}
+                </address>
               </div>
             </div>
           </div>

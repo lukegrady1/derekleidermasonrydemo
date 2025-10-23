@@ -99,14 +99,15 @@ export default function Header() {
             {/* Request Quote Button */}
             <button
               type="button"
-              className="btn btn-primary text-sm"
+              className="btn btn-primary text-xs px-3 py-2 lg:text-sm lg:px-4 lg:py-2"
               onClick={() => {
                 // This will be connected to the modal
                 const event = new CustomEvent('openQuoteModal')
                 window.dispatchEvent(event)
               }}
             >
-              Request a Quote
+              <span className="hidden sm:inline">Request a Quote</span>
+              <span className="sm:hidden">Quote</span>
             </button>
 
             {/* Mobile Menu Button */}

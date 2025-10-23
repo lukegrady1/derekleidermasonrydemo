@@ -77,7 +77,7 @@ export const PAYMENT_METHODS = [
 ]
 
 export const NAV_LINKS = [
-  { href: '/#services', label: 'Services' },
+  { href: '/services', label: 'Services' },
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
   { href: '/service-area', label: 'Service Area' },
