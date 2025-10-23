@@ -52,8 +52,9 @@ jobs:
           echo -e "\n=== Contents of next.config.js (if exists) ==="
           if [ -f "next.config.js" ]; then
             cat next.config.js
+            echo "⚠️  WARNING: Multiple Next.js config files found!"
           else
-            echo "next.config.js not found"
+            echo "next.config.js not found (good)"
           fi
           
           echo -e "\n=== Package.json scripts ==="
@@ -62,9 +63,9 @@ jobs:
           echo -e "\n=== Next.js version ==="
           npm list next
           
-          echo -e "\n=== Node modules next config ==="
-          if [ -f "node_modules/next/package.json" ]; then
-            grep '"version"' node_modules/next/package.json
+          echo -e "\n=== Check if tsconfig has any static export blocking settings ==="
+          if [ -f "tsconfig.json" ]; then
+            grep -i "export\|static\|server" tsconfig.json || echo "No export-related settings found"
           fi
 
       - name: Build with Next.js
@@ -107,49 +108,91 @@ jobs:
         run: |
           echo "Checking for out directory..."
           if [ ! -d "out" ]; then
-            echo "out directory not found, attempting manual export..."
+            echo "❌ out directory not found, attempting manual export..."
             
             # Check if .next exists
             if [ -d ".next" ]; then
               echo ".next directory exists, trying manual export..."
               
-              # Try using next export (deprecated but might work)
-              echo "Attempting next export..."
-              npx next export 2>&1 || echo "next export failed"
+              # Create the out directory and copy everything we need
+              mkdir -p out
               
-              # If still no out directory, try copying from .next
-              if [ ! -d "out" ]; then
-                echo "Creating out directory manually from .next..."
-                mkdir -p out
-                
-                # Copy static files if they exist
-                if [ -d ".next/static" ]; then
-                  cp -r .next/static out/_next
-                fi
-                
-                # Copy server pages if they exist
-                if [ -d ".next/server/app" ]; then
-                  find .next/server/app -name "*.html" -exec cp {} out/ \; 2>/dev/null || true
-                fi
-                
-                # Copy standalone files if they exist  
-                if [ -d ".next/standalone" ]; then
-                  cp -r .next/standalone/* out/ 2>/dev/null || true
-                fi
-                
-                # Ensure we have an index.html
-                if [ ! -f "out/index.html" ]; then
-                  echo "Creating fallback index.html..."
-                  echo '<!DOCTYPE html><html><head><title>Derek Leider Masonry</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>Site is building...</h1><p>The static export process needs to be fixed. Check the build logs.</p></body></html>' > out/index.html
+              echo "Copying static files..."
+              # Copy all static assets from .next
+              if [ -d ".next/static" ]; then
+                mkdir -p out/_next
+                cp -r .next/static out/_next/
+                echo "✅ Copied _next/static"
+              fi
+              
+              # Copy build manifest and other build files
+              if [ -d ".next/build-manifest.json" ]; then
+                cp .next/build-manifest.json out/_next/ 2>/dev/null || true
+              fi
+              
+              # Copy standalone build if it exists (for static export)
+              if [ -d ".next/standalone" ]; then
+                cp -r .next/standalone/* out/ 2>/dev/null || true
+                echo "✅ Copied standalone files"
+              fi
+              
+              # Copy server-rendered HTML pages if they exist
+              if [ -d ".next/server/app" ]; then
+                echo "Copying server-rendered pages..."
+                find .next/server/app -name "*.html" -type f | while read file; do
+                  # Get relative path and create directory structure
+                  rel_path=${file#.next/server/app/}
+                  rel_dir=$(dirname "$rel_path")
+                  
+                  if [ "$rel_dir" != "." ]; then
+                    mkdir -p "out/$rel_dir"
+                  fi
+                  
+                  # Copy the HTML file
+                  if [[ "$rel_path" == */index.html ]]; then
+                    cp "$file" "out/$rel_path"
+                  elif [[ "$rel_path" == *.html ]]; then
+                    # Create directory for the page and copy as index.html
+                    page_name=$(basename "$rel_path" .html)
+                    mkdir -p "out/$rel_dir/$page_name"
+                    cp "$file" "out/$rel_dir/$page_name/index.html"
+                  fi
+                done
+                echo "✅ Copied server-rendered pages"
+              fi
+              
+              # Copy public assets
+              if [ -d "public" ]; then
+                echo "Copying public assets..."
+                cp -r public/* out/ 2>/dev/null || true
+                echo "✅ Copied public assets"
+              fi
+              
+              # Ensure we have a basic index.html if none exists
+              if [ ! -f "out/index.html" ]; then
+                echo "Creating fallback index.html..."
+                if [ -f ".next/server/app/page.html" ]; then
+                  cp .next/server/app/page.html out/index.html
+                elif [ -f ".next/server/app/index.html" ]; then
+                  cp .next/server/app/index.html out/index.html
+                else
+                  echo '<!DOCTYPE html><html><head><title>Derek Leider Masonry</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>Site is building...</h1><p>Manual static export in progress.</p></body></html>' > out/index.html
                 fi
               fi
+              
+              # Create .nojekyll file for GitHub Pages
+              touch out/.nojekyll
+              
             else
-              echo "No .next directory found, build completely failed"
+              echo "❌ No .next directory found, build completely failed"
               exit 1
             fi
           else
             echo "✅ out directory found"
           fi
+          
+          echo "Final out directory contents:"
+          find out -type f | head -20
 
       - name: Verify build output
         run: |
