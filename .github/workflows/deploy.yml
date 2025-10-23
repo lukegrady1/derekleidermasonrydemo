@@ -164,8 +164,30 @@ jobs:
               # Copy public assets
               if [ -d "public" ]; then
                 echo "Copying public assets..."
-                cp -r public/* out/ 2>/dev/null || true
+                echo "Public directory contents:"
+                find public -type f | head -20
+                
+                # Copy all files from public, preserving directory structure
+                find public -type f -exec cp --parents {} out/ \; 2>/dev/null || {
+                  echo "Using alternative copy method..."
+                  # Alternative method if --parents doesn't work
+                  cd public
+                  find . -type f | while read file; do
+                    mkdir -p "../out/$(dirname "$file")"
+                    cp "$file" "../out/$file"
+                  done
+                  cd ..
+                }
+                
                 echo "✅ Copied public assets"
+                echo "Verifying images were copied:"
+                if [ -d "out/images" ]; then
+                  find out/images -type f | head -10
+                else
+                  echo "❌ out/images directory not found after copy"
+                fi
+              else
+                echo "❌ No public directory found"
               fi
               
               # Ensure we have a basic index.html if none exists
@@ -193,6 +215,13 @@ jobs:
           
           echo "Final out directory contents:"
           find out -type f | head -20
+          
+          echo "Specific verification:"
+          echo "- Index file: $(ls -la out/index.html 2>/dev/null || echo 'NOT FOUND')"
+          echo "- CSS files: $(find out -name '*.css' | head -3)"
+          echo "- JS files: $(find out -name '*.js' | head -3)"
+          echo "- Image files: $(find out -name '*.png' -o -name '*.PNG' -o -name '*.jpg' -o -name '*.jpeg' | head -5)"
+          echo "- Font files: $(find out -name '*.woff2' | head -3)"
 
       - name: Verify build output
         run: |
