@@ -161,35 +161,6 @@ jobs:
                 echo "✅ Copied server-rendered pages"
               fi
               
-              # Copy public assets
-              if [ -d "public" ]; then
-                echo "Copying public assets..."
-                echo "Public directory contents:"
-                find public -type f | head -20
-                
-                # Copy all files from public, preserving directory structure
-                find public -type f -exec cp --parents {} out/ \; 2>/dev/null || {
-                  echo "Using alternative copy method..."
-                  # Alternative method if --parents doesn't work
-                  cd public
-                  find . -type f | while read file; do
-                    mkdir -p "../out/$(dirname "$file")"
-                    cp "$file" "../out/$file"
-                  done
-                  cd ..
-                }
-                
-                echo "✅ Copied public assets"
-                echo "Verifying images were copied:"
-                if [ -d "out/images" ]; then
-                  find out/images -type f | head -10
-                else
-                  echo "❌ out/images directory not found after copy"
-                fi
-              else
-                echo "❌ No public directory found"
-              fi
-              
               # Ensure we have a basic index.html if none exists
               if [ ! -f "out/index.html" ]; then
                 echo "Creating fallback index.html..."
@@ -213,15 +184,60 @@ jobs:
             echo "✅ out directory found"
           fi
           
-          echo "Final out directory contents:"
-          find out -type f | head -20
+          # CRITICAL: Always ensure public assets are copied, whether out exists or not
+          echo "=== Ensuring public assets are copied to out ==="
+          if [ -d "public" ]; then
+            echo "Public directory contents:"
+            find public -type f
+            
+            echo "Copying all public assets to out..."
+            # Method 1: Try cp with --parents
+            find public -type f -exec cp --parents {} out/ \; 2>&1 | tee copy.log || {
+              echo "Method 1 failed, trying alternative..."
+              # Method 2: Manual copy with directory creation
+              cd public
+              find . -type f | while read file; do
+                target_dir="../out/$(dirname "$file")"
+                mkdir -p "$target_dir"
+                cp -v "$file" "../out/$file"
+                echo "Copied: $file"
+              done
+              cd ..
+            }
+            
+            echo "✅ Public assets copy process completed"
+            
+            # Verify critical files were copied
+            echo "Verifying critical files:"
+            if [ -f "out/logo.png" ]; then
+              echo "✅ logo.png copied ($(wc -c < out/logo.png) bytes)"
+            else
+              echo "❌ logo.png MISSING"
+              # Force copy if missing
+              cp public/logo.png out/logo.png 2>/dev/null && echo "Manually copied logo.png" || echo "Failed to copy logo.png"
+            fi
+            
+            if [ -f "out/images/hero-masonry.PNG" ]; then
+              echo "✅ hero-masonry.PNG copied ($(wc -c < out/images/hero-masonry.PNG) bytes)"
+            else
+              echo "❌ hero-masonry.PNG MISSING"
+              mkdir -p out/images
+              cp public/images/hero-masonry.PNG out/images/hero-masonry.PNG 2>/dev/null && echo "Manually copied hero-masonry.PNG" || echo "Failed to copy hero-masonry.PNG"
+            fi
+            
+            if [ -f "out/images/team-photo.PNG" ]; then
+              echo "✅ team-photo.PNG copied ($(wc -c < out/images/team-photo.PNG) bytes)"
+            else
+              echo "❌ team-photo.PNG MISSING"
+              mkdir -p out/images
+              cp public/images/team-photo.PNG out/images/team-photo.PNG 2>/dev/null && echo "Manually copied team-photo.PNG" || echo "Failed to copy team-photo.PNG"
+            fi
+          else
+            echo "❌ No public directory found!"
+          fi
           
-          echo "Specific verification:"
-          echo "- Index file: $(ls -la out/index.html 2>/dev/null || echo 'NOT FOUND')"
-          echo "- CSS files: $(find out -name '*.css' | head -3)"
-          echo "- JS files: $(find out -name '*.js' | head -3)"
-          echo "- Image files: $(find out -name '*.png' -o -name '*.PNG' -o -name '*.jpg' -o -name '*.jpeg' | head -5)"
-          echo "- Font files: $(find out -name '*.woff2' | head -3)"
+          echo "=== Final out directory structure ==="
+          find out -type f | head -30
 
       - name: Verify build output
         run: |
