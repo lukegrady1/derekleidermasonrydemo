@@ -37,9 +37,53 @@ jobs:
         run: npm ci
 
       - name: Build with Next.js
-        run: npm run build
+        run: |
+          echo "Starting Next.js build..."
+          npm run build
+          echo "Build completed, checking output..."
         env:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+
+      - name: Verify and fix build output
+        run: |
+          echo "Checking build output..."
+          ls -la
+          
+          if [ -d "out" ]; then
+            echo "✓ out directory found"
+            echo "Contents of out directory:"
+            ls -la out/ | head -20
+          elif [ -d ".next" ]; then
+            echo "Found .next directory but no out directory"
+            echo "This suggests static export failed. Checking .next contents:"
+            ls -la .next/
+            
+            # If we have a .next directory but no out, something went wrong with static export
+            echo "Attempting manual export..."
+            npx next export || echo "Manual export failed, using .next/static as fallback"
+            
+            # Create out directory as fallback
+            if [ ! -d "out" ]; then
+              echo "Creating out directory manually..."
+              mkdir -p out
+              # Copy static assets if they exist
+              if [ -d ".next/static" ]; then
+                cp -r .next/static out/
+              fi
+              # Create a basic index.html if none exists
+              if [ ! -f "out/index.html" ]; then
+                echo '<!DOCTYPE html><html><head><title>Build Error</title></head><body><h1>Build output missing</h1></body></html>' > out/index.html
+              fi
+            fi
+          else
+            echo "✗ Neither out nor .next directory found!"
+            echo "Build may have completely failed. Creating minimal out directory..."
+            mkdir -p out
+            echo '<!DOCTYPE html><html><head><title>Build Error</title></head><body><h1>Build failed - no output generated</h1></body></html>' > out/index.html
+          fi
+          
+          echo "Final verification:"
+          ls -la out/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

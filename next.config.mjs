@@ -2,6 +2,8 @@
 const nextConfig = {
   output: 'export',
   basePath: '/derekleidermasonrydemo',
+  assetPrefix: '/derekleidermasonrydemo',
+  trailingSlash: true,
   reactStrictMode: true,
   images: {
     unoptimized: true,
