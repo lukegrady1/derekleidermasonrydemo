@@ -59,7 +59,7 @@ export default function AboutPage() {
             </div>
             <div className="relative rounded-lg aspect-[4/3] overflow-hidden shadow-lg">
               <Image
-                src="/images/team-photo.png"
+                src="/images/team-photo.PNG"
                 alt="Derek Leider Masonry team"
                 fill
                 className="object-cover"
