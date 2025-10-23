@@ -8,6 +8,13 @@ export default function ServiceAreaMap() {
   useEffect(() => {
     // Load Google Maps script
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    
+    // Don't try to load maps if no API key is available
+    if (!apiKey) {
+      console.warn('Google Maps API key not found')
+      return
+    }
+    
     const script = document.createElement('script')
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry,drawing`
     script.async = true
@@ -21,7 +28,9 @@ export default function ServiceAreaMap() {
 
     return () => {
       // Cleanup script on unmount
-      document.head.removeChild(script)
+      if (document.head.contains(script)) {
+        document.head.removeChild(script)
+      }
     }
   }, [])
 
