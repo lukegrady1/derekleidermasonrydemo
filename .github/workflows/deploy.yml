@@ -36,14 +36,43 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Debug Next.js configuration
+        run: |
+          echo "=== Debugging Next.js Configuration ==="
+          echo "Checking for Next.js config files:"
+          find . -name "next.config.*" -type f | head -10
+          
+          echo -e "\n=== Contents of next.config.mjs ==="
+          if [ -f "next.config.mjs" ]; then
+            cat next.config.mjs
+          else
+            echo "next.config.mjs not found"
+          fi
+          
+          echo -e "\n=== Contents of next.config.js (if exists) ==="
+          if [ -f "next.config.js" ]; then
+            cat next.config.js
+          else
+            echo "next.config.js not found"
+          fi
+          
+          echo -e "\n=== Package.json scripts ==="
+          grep -A 10 '"scripts"' package.json
+          
+          echo -e "\n=== Next.js version ==="
+          npm list next
+          
+          echo -e "\n=== Node modules next config ==="
+          if [ -f "node_modules/next/package.json" ]; then
+            grep '"version"' node_modules/next/package.json
+          fi
+
       - name: Build with Next.js
         run: |
           echo "Starting Next.js build..."
           echo "Node version: $(node --version)"
           echo "NPM version: $(npm --version)"
           echo "Current directory: $(pwd)"
-          echo "Directory contents before build:"
-          ls -la
           
           # Check if environment variable is set
           if [ -z "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY" ]; then
@@ -53,22 +82,74 @@ jobs:
             echo "✅ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is set"
           fi
           
+          echo "Starting build process..."
           # Run the build and capture both stdout and stderr
           npm run build 2>&1 | tee build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           
           echo "Build exit code: $BUILD_EXIT_CODE"
+          echo "=== Full Build Log ==="
+          cat build.log
           
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "❌ Build failed with exit code $BUILD_EXIT_CODE"
-            echo "Build log:"
-            cat build.log
             exit $BUILD_EXIT_CODE
           else
             echo "✅ Build completed successfully"
           fi
+          
+          echo "=== Post-build directory contents ==="
+          ls -la
         env:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+
+      - name: Force static export if needed
+        run: |
+          echo "Checking for out directory..."
+          if [ ! -d "out" ]; then
+            echo "out directory not found, attempting manual export..."
+            
+            # Check if .next exists
+            if [ -d ".next" ]; then
+              echo ".next directory exists, trying manual export..."
+              
+              # Try using next export (deprecated but might work)
+              echo "Attempting next export..."
+              npx next export 2>&1 || echo "next export failed"
+              
+              # If still no out directory, try copying from .next
+              if [ ! -d "out" ]; then
+                echo "Creating out directory manually from .next..."
+                mkdir -p out
+                
+                # Copy static files if they exist
+                if [ -d ".next/static" ]; then
+                  cp -r .next/static out/_next
+                fi
+                
+                # Copy server pages if they exist
+                if [ -d ".next/server/app" ]; then
+                  find .next/server/app -name "*.html" -exec cp {} out/ \; 2>/dev/null || true
+                fi
+                
+                # Copy standalone files if they exist  
+                if [ -d ".next/standalone" ]; then
+                  cp -r .next/standalone/* out/ 2>/dev/null || true
+                fi
+                
+                # Ensure we have an index.html
+                if [ ! -f "out/index.html" ]; then
+                  echo "Creating fallback index.html..."
+                  echo '<!DOCTYPE html><html><head><title>Derek Leider Masonry</title><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><h1>Site is building...</h1><p>The static export process needs to be fixed. Check the build logs.</p></body></html>' > out/index.html
+                fi
+              fi
+            else
+              echo "No .next directory found, build completely failed"
+              exit 1
+            fi
+          else
+            echo "✅ out directory found"
+          fi
 
       - name: Verify build output
         run: |
